@@ -1,4 +1,4 @@
-# US Bank Credit Stress Test
+# Top-Down Credit Stress Test for Large U.S. Banks
 
 > A reduced-form macro stress test of credit risk across ten large US banks. Built as a portfolio project to demonstrate satellite modeling, validation, and capital projection methodology used in supervisory stress testing.
 >
@@ -337,8 +337,8 @@ Every simplification above is visible in the code as a named parameter. That is 
 Requires Python 3.10+ and the packages in `requirements.txt`. The first run downloads FDIC data over the internet and caches it locally.
 
 ```bash
-git clone https://github.com/muhammadumarshinwari/us-bank-credit-stress-test.git
-cd us-bank-credit-stress-test
+git clone https://github.com/muhammadumarshinwari/top-down-credit-stress-test-large-us-banks.git
+cd top-down-credit-stress-test-large-us-banks
 pip install -r requirements.txt
 python examples/run_all.py
 ```
