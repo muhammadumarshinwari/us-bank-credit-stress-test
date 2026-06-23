@@ -1,31 +1,74 @@
 # US Bank Credit Stress Test
 
-A Python implementation of a macro stress test on public US bank data. The project estimates how nonperforming loan (NPL) ratios move with the economy, checks that the model holds up out of sample, and translates a Federal Reserve adverse scenario into projected credit losses and capital ratios for ten large US banks.
+> A reduced-form macro stress test of credit risk across ten large US banks. Built as a portfolio project to demonstrate satellite modeling, validation, and capital projection methodology used in supervisory stress testing.
+>
+> *Built by a former Senior Analyst in the Financial Stability Department at the State Bank of Pakistan, where I stress tested 52 institutions across credit, market, liquidity, and PPNR risk.*
+
+**Methods:** panel fixed-effects regression · HC1 robust standard errors · Phillips-Perron and Zivot-Andrews unit root tests · out-of-sample validation · VIF and Ljung-Box diagnostics
+**Data:** FDIC BankFind API · FRED · Fed DFAST scenario files
+**Stack:** Python · statsmodels · pandas · matplotlib
 
 ---
 
-## How banks actually stress credit risk (and what this project does instead)
+## Headline result
 
-If you walk into a large bank's risk team and ask how they stress credit, you will usually hear about **probability of default (PD)**, **loss given default (LGD)**, and **exposure at default (EAD)**. Under IFRS 9, expected credit loss (ECL) is built from those three ingredients, often at the loan or facility level, with ratings migration and stage allocation (Stage 1, 2, 3) driving provisions on the balance sheet. In CCAR and DFAST, banks go further: loan-level or segment-level models for commercial real estate, cards, mortgages, and C&I, sometimes with detailed collateral and prepayment dynamics, all shocked under a supervisory macro scenario.
+The 2025 Fed severely adverse scenario applied to ten large US banks over a nine-quarter horizon:
 
-That bottom-up stack is the real production system. It requires loan tapes, internal ratings, write-off histories, and models that are validated, documented, and challenged every cycle.
+| Metric | Value |
+|---|---:|
+| Total system credit loss | $36.1B |
+| Median trough capital ratio | 9.79% |
+| Most stressed bank (trough) | JPMorgan Chase, 9.10% |
+| Least stressed bank (trough) | Regions, 12.60% |
+| Banks breaching 5% capital floor | 0 of 10 |
+| In-sample RMSE | 0.32 pp |
+| Out-of-sample RMSE | 0.17 pp |
 
-This repository is **not** that. It is a **top-down satellite model** of the kind supervisors and central banks often use when they need to link a macro scenario to bank-level credit outcomes without full loan-level data. Instead of PD x LGD x EAD at the instrument level, the model uses the **NPL ratio** directly as a function of lagged NPL and a small set of macro variables (GDP growth, unemployment, mortgage rates). Losses are then backed out with a fixed LGD assumption. The capital module is deliberately simple: equity rolls forward from pre-provision income minus credit losses, with no risk-weighted assets, no AFS marks, and no management actions.
-
-All inputs are public (FDIC call reports, FRED, Fed scenario CSVs). The code is short enough to read in an afternoon. The workflow follows standard macro stress testing practice: define a scenario, estimate a macro-to-risk satellite model, validate it, then project balance-sheet outcomes. The simplification is in the data and the loss engine, not in the logic.
+All numbers reproduce from `python examples/run_all.py`.
 
 ---
 
-## The workflow in plain language
+## Pipeline
 
-The exercise runs in four steps.
+```
+FDIC call reports      FRED macro history       2025 Fed scenario
+       │                       │                        │
+       └───────────┬───────────┘                        │
+                   ▼                                    │
+        Estimation panel (780 obs)                      │
+                   │                                    │
+                   ▼                                    │
+        Satellite NPL model                             │
+        (panel FE + AR(1) + macro)                      │
+                   │                                    │
+                   ▼                                    │
+        Validation suite (12 PASS, 4 WARN)              │
+                   │                                    │
+                   └───────────┬────────────────────────┘
+                               ▼
+                  Nine-quarter NPL projection
+                               │
+                               ▼
+                  Capital roll-forward
+                  (NPL → losses → equity → ratio)
+```
 
-1. **Build a panel.** Pull quarterly financials for ten US banks from the FDIC and merge them with macro history from FRED.
-2. **Estimate a satellite model.** Regress each bank's NPL ratio on its own lag, GDP growth, unemployment, and mortgage rates, with a fixed effect for each bank.
-3. **Validate the model.** Backtest in sample, forecast out of sample on 2023-2024, run standard regression diagnostics, and check unit roots.
-4. **Run the stress test.** Feed the 2025 Fed severely adverse scenario through the model, convert the resulting NPL paths into losses, and roll capital forward.
+---
 
-Everything is modular. You can inspect the scenario loader, the regression, the validation flags, and the capital formulas separately. That is how stress testing should be structured whether you are at a central bank or reviewing a model as a validator.
+## How banks actually stress credit (and what this project does instead)
+
+Walk into a large bank's risk team and ask how they stress credit. You will hear about **probability of default (PD)**, **loss given default (LGD)**, and **exposure at default (EAD)**, often modeled at the loan or facility level with rating migrations and IFRS 9 stage allocation driving provisions. CCAR and DFAST go further: segment-level models for CRE, cards, mortgages, and C&I, with collateral and prepayment dynamics, all shocked under a supervisory macro scenario. That bottom-up stack is the production system.
+
+This project is **not** that. It is a **top-down satellite model** of the kind supervisors and central banks use when they need to link a macro scenario to bank-level credit outcomes without full loan-level data. The NPL ratio enters directly as a function of lagged NPL and a small set of macro variables. Losses are backed out with a fixed LGD. The capital module rolls equity forward from pre-provision income minus credit losses. All inputs are public.
+
+---
+
+## The workflow
+
+1. **Build the panel.** Pull quarterly financials for ten US banks from the FDIC and merge with FRED macro history.
+2. **Estimate the satellite.** Regress each bank's NPL ratio on its own lag, GDP growth, unemployment, and mortgage rates, with bank fixed effects.
+3. **Validate.** Backtest in sample, forecast out of sample on 2023-2024, run standard regression diagnostics, and check unit roots.
+4. **Project.** Feed the 2025 Fed severely adverse scenario through the model, convert NPL paths into losses, and roll capital forward.
 
 ---
 
@@ -33,15 +76,13 @@ Everything is modular. You can inspect the scenario loader, the regression, the 
 
 ### Banks and the credit metric
 
-I use ten large US banks (JPMorgan, Bank of America, Wells Fargo, Citi, U.S. Bank, PNC, Truist, Fifth Third, KeyBank, Regions). Quarterly data come from the [FDIC BankFind API](https://banks.data.fdic.gov/docs/), which is free and does not require an API key. After the first download, results are cached locally so you do not need to hit the API every time.
+Ten large US banks. Quarterly data from the [FDIC BankFind API](https://banks.data.fdic.gov/docs/) (free, no key). After the first download, results are cached locally.
 
 The dependent variable is the **NPL ratio** from call report fields:
 
-$$\text{NPL ratio (\%)} = \frac{\text{NCLNLS}}{\text{LNLSNET}} \times 100$$
+$$\text{NPL ratio (\\%)} = \frac{\text{NCLNLS}}{\text{LNLSNET}} \times 100$$
 
-`NCLNLS` is noncurrent loans and leases. `LNLSNET` is net loans and leases. This is a coarse but standard portfolio-level measure of credit quality. A PD-based model would instead track migration from performing to default within each rating grade. Here I observe the **outcome** (NPL stock relative to loans) and relate it to the macro environment.
-
-**Sample of banks in the panel:**
+`NCLNLS` is noncurrent loans and leases. `LNLSNET` is net loans and leases. A coarse but standard portfolio-level credit quality measure.
 
 | CERT | Bank |
 |---:|---|
@@ -58,22 +99,22 @@ $$\text{NPL ratio (\%)} = \frac{\text{NCLNLS}}{\text{LNLSNET}} \times 100$$
 
 ### Macro variables
 
-Macro series are bundled in `data/fred_macro_history.csv` so the project runs without a FRED API key. The model uses four regressors in the final specification, but the panel includes a wider set for specification testing.
+Bundled in `data/fred_macro_history.csv` so the project runs without a FRED API key. The final model uses four regressors; the panel includes a wider set for specification testing.
 
-| Variable | FRED series | Used in final model? |
-|---|---|---|
+| Variable | FRED series | Used in final model |
+|---|---|:---:|
 | Real GDP growth | A191RL1Q225SBEA | Yes (lag 2) |
 | Unemployment | UNRATE | Yes (contemporaneous) |
 | 30-year mortgage rate | MORTGAGE30US | Yes (lag 1) |
-| 3-month T-bill | TB3MS | No (dropped in final spec) |
+| 3-month T-bill | TB3MS | No |
 | CPI inflation | CPIAUCSL | No |
 | House price index | CSUSHPINSA | No |
 
-The panel runs from **2005 Q1 to 2024 Q4** (80 quarters per bank). After attaching two lags, **780 bank-quarters** remain for estimation.
+Panel: **2005 Q1 to 2024 Q4** (80 quarters per bank). After attaching two lags, **780 bank-quarters** remain for estimation.
 
 ### Stress scenario
 
-For the stress test I apply the **2025 Fed supervisory severely adverse domestic scenario** (`data/2025-Table_3A_Supervisory_Severely_Adverse_Domestic.csv`). Bank history ends at 2024 Q4. The scenario path starts at 2025 Q1 and runs for nine quarters, matching the standard DFAST planning horizon.
+The **2025 Fed supervisory severely adverse domestic scenario** (`data/2025-Table_3A_Supervisory_Severely_Adverse_Domestic.csv`). Bank history ends 2024 Q4. Scenario path starts 2025 Q1 and runs nine quarters, matching the DFAST planning horizon.
 
 ---
 
@@ -81,44 +122,40 @@ For the stress test I apply the **2025 Fed supervisory severely adverse domestic
 
 ### Specification
 
-The final model has four macro terms plus bank fixed effects and a lagged dependent variable:
-
 $$
 \text{NPL}_{i,t} = \alpha_i + \rho\,\text{NPL}_{i,t-1} + \beta_1\,\text{GDP}_{t-2} + \beta_2\,\text{UR}_{t} + \beta_3\,\text{Mtg}_{t-1} + \varepsilon_{i,t}
 $$
 
-The lagged NPL term captures persistence. Credit quality does not reset every quarter. The GDP term enters with a two-quarter lag, which is consistent with the idea that weaker growth shows up in delinquencies with a delay. Unemployment enters contemporaneously. The mortgage rate enters with one lag, which proxies for pressure on household debt service and housing-related portfolios.
+The lagged NPL term captures persistence — credit quality does not reset every quarter. GDP enters at lag 2 (weaker growth shows up in delinquencies with a delay). Unemployment is contemporaneous. The mortgage rate enters with one lag, proxying for household debt-service pressure.
 
-I estimate the equation by pooled OLS with bank dummies and **HC1 robust standard errors**. There are bank fixed effects only, no time fixed effects. Common macro shocks enter through the regressors rather than through time dummies.
+Estimation is pooled OLS with bank dummies and **HC1 robust standard errors**. Bank fixed effects only — no time fixed effects, so common macro shocks enter through the regressors rather than through time dummies.
 
 ### How I got to this specification
 
-I did not start with four variables. The first pass included two lags of GDP, unemployment, and short rates on top of lagged NPL. That fit well in sample but was too rich for ten banks. I dropped variables and lags step by step, checking forecast stability and coefficient signs at each stage. GDP worked better at lag 2 than lag 1. Contemporaneous unemployment beat a lagged term. The mortgage rate added more than the T-bill alone for this sample. HPI, CPI, and the T-bill were dropped from the final spec.
+I did not start with four variables. The first pass included two lags of GDP, unemployment, and short rates on top of lagged NPL. That fit well in sample but was too rich for ten banks. I dropped variables and lags step by step, checking forecast stability and coefficient signs at each stage. GDP worked better at lag 2 than lag 1. Contemporaneous unemployment beat a lagged term. The mortgage rate added more than the T-bill alone. HPI, CPI, and the T-bill were dropped from the final spec.
 
-That iterative trimming is normal in satellite model development. The goal is not the highest in-sample R-squared. It is a stable, interpretable mapping from scenario to NPL that a validator can challenge.
+That iterative trimming is normal in satellite model development. The goal is a stable, interpretable mapping from scenario to NPL that a validator can challenge — not the highest in-sample R-squared.
 
 ### Estimated coefficients (full panel, 780 obs.)
 
 | Variable | Coef. | Std. err. | Sign | Reading |
-|---|--:|--:|---|---|
+|---|--:|--:|:---:|---|
 | `npl_lag1` | 0.942 | 0.011 | + | NPL is highly persistent |
 | `real_gdp_growth_lag2` | -0.007 | 0.002 | - | Weaker growth raises NPL with delay |
 | `unemployment` | 0.052 | 0.010 | + | Higher unemployment raises NPL |
 | `mortgage_rate_lag1` | 0.077 | 0.008 | + | Higher rates raise NPL with one-quarter lag |
 
-R-squared is 0.972. All coefficients are significant at the 1% level. The signs match basic credit-cycle intuition: a worse macro path pushes NPL up, and last quarter's NPL is the strongest predictor of this quarter's NPL.
-
-In a PD-based framework these relationships would appear indirectly through migration matrices and segment PDs. Here they are estimated in reduced form on the NPL ratio itself, which is what makes the model a satellite rather than a structural credit engine.
+R-squared 0.972. All coefficients significant at 1%. Signs match credit-cycle intuition.
 
 ---
 
 ## Model validation
 
-Validation matters as much as estimation, especially if you are targeting model risk or stress testing roles. The project includes a `validate_model()` function that produces a structured report with automated PASS, WARN, and FAIL flags. I treat WARN seriously. A flag does not mean the model is broken, but it does mean I would discuss that issue in a validation memo.
+Validation matters as much as estimation. The project includes a `validate_model()` function that produces a structured report with automated PASS, WARN, and FAIL flags. I treat WARN seriously — a flag does not mean the model is broken, but I would discuss it in a validation memo.
 
 ### What the validator checks
 
-The function covers economic plausibility (do coefficient signs make sense?), statistical fit, multicollinearity, residual diagnostics, in-sample backtest error, out-of-sample forecast error, and a separate flag for GFC-period fit. Full code is in `stresskit/validation.py`.
+Economic plausibility (do coefficient signs make sense?), statistical fit, multicollinearity, residual diagnostics, in-sample backtest error, out-of-sample forecast error, and a separate flag for GFC-period fit. Code in `stresskit/validation.py`.
 
 ```python
 from stresskit import SatelliteNPLModel, validate_model
@@ -137,13 +174,13 @@ report.save("data/")
 
 **Validation summary (estimation through 2022 Q4): 12 PASS, 4 WARN, 0 FAIL.**
 
-| Check | Status | What it means |
-|---|---|---|
+| Check | Status | Detail |
+|---|:---:|---|
 | Coefficient signs | PASS | All four regressors signed as theory suggests |
 | Significance | PASS | All p-values below 1% |
 | R-squared | PASS | 0.972 |
 | In-sample RMSE | PASS | 0.32 pp |
-| Out-of-sample RMSE | PASS | 0.17 pp (about half the in-sample error) |
+| Out-of-sample RMSE | PASS | 0.17 pp |
 | Out-of-sample bias | PASS | +0.14 pp, model slightly under-predicts |
 | Heteroskedasticity | PASS | Breusch-Pagan rejects, HC1 SEs used |
 | Durbin-Watson | WARN | 1.12, some positive autocorrelation |
@@ -160,11 +197,7 @@ The warnings are honest. A linear AR model with ten banks is not going to fit th
 
 ### In-sample backtest
 
-The first test is simple: at each quarter, can the model predict that quarter's NPL using only information available up to the prior quarter? That is a one-step-ahead backtest across the full panel.
-
-Overall error is **0.31 pp RMSE** and **0.18 pp MAE**, where errors are measured in percentage points of the NPL ratio. On a bank running at a 1% NPL ratio, that is roughly a third of a percentage point of typical prediction error.
-
-**Backtest error by bank:**
+At each quarter, can the model predict that quarter's NPL using only information available up to the prior quarter? Overall error is **0.31 pp RMSE** and **0.18 pp MAE**.
 
 | Bank | RMSE (pp) | MAE (pp) |
 |---|---:|---:|
@@ -179,13 +212,11 @@ Overall error is **0.31 pp RMSE** and **0.18 pp MAE**, where errors are measured
 | Bank of America | 0.40 | 0.26 |
 | PNC | 0.40 | 0.18 |
 
-The chart below plots actual NPL (solid) against one-step predicted NPL (dashed) for each bank over time. The top panel shows that the model tracks the level and trend reasonably well in calm periods. The bottom panel plots the average prediction error by quarter. Errors cluster around the Global Financial Crisis, when a linear model without a regime switch cannot capture the speed of deterioration.
-
 ![Backtest results](docs/backtest_results.png)
 
-**How to read the chart.** Each colored line in the top panel is one bank. Where solid and dashed lines stay close, the model is tracking realized credit quality. Where they diverge, usually 2008-2009 or at banks with idiosyncratic NPL histories (Bank of America after acquisitions, PNC in the GFC), the satellite is missing something structural. The bar chart below shows that those errors are not random noise in one direction. They spike in the crisis and are much smaller in 2015-2019.
+**How to read.** Top panel: each colored line is one bank, solid = actual NPL, dashed = one-step prediction. Where they stay close, the model is tracking realized credit quality. Bottom panel: average prediction error by quarter. Errors cluster around the Global Financial Crisis, when a linear model without a regime switch cannot capture the speed of deterioration.
 
-**RMSE by sub-period (estimation window):**
+**RMSE by sub-period:**
 
 | Period | RMSE (pp) |
 |---|---:|
@@ -195,11 +226,11 @@ The chart below plots actual NPL (solid) against one-step predicted NPL (dashed)
 | 2015-2019 | 0.11 |
 | 2020-2022 | 0.18 |
 
-The GFC row is the one I would spend the most time on in a model review. Everything else is tolerable for a portfolio-level satellite.
+The GFC row is the one I would spend the most time on in a model review.
 
 ### Out-of-sample forecast (2023 Q1 to 2024 Q4)
 
-In-sample fit can always be engineered. A more informative test is whether the model forecasts a period it never saw during estimation. I estimate through **2022 Q4** and forecast **2023 Q1 to 2024 Q4**, which gives 80 bank-quarters (8 quarters times 10 banks).
+In-sample fit can always be engineered. A more informative test: estimate through **2022 Q4**, forecast **2023 Q1 to 2024 Q4** (80 bank-quarters).
 
 | Metric | Value |
 |---|---:|
@@ -207,9 +238,7 @@ In-sample fit can always be engineered. A more informative test is whether the m
 | MAE | 0.16 pp |
 | Bias | +0.14 pp |
 
-The model **under-predicts** realized NPL by about 0.14 pp on average. NPL ticked up modestly in 2024 and the satellite, anchored on high persistence, lagged that turn slightly.
-
-**Panel average by quarter:**
+The model **under-predicts** realized NPL by 0.14 pp on average. NPL ticked up modestly in 2024 and the satellite, anchored on high persistence, lagged that turn slightly.
 
 | Quarter | Actual NPL (%) | Predicted (%) | Error (pp) |
 |---|---:|---:|---:|
@@ -224,22 +253,18 @@ The model **under-predicts** realized NPL by about 0.14 pp on average. NPL ticke
 
 ![Out-of-sample forecast](docs/forecast_sample_results.png)
 
-**How to read the chart.** The top panel again shows actual (solid) vs predicted (dashed) NPL. In the holdout window the lines track each other more closely than in the GFC, which is why OOS RMSE is lower than full-sample in-sample RMSE. The bottom panel shows quarter-by-quarter bias. Bars above zero mean the model predicted higher NPL than realized early in 2023, then flipped to under-prediction as actual NPL rose in 2024. That pattern is worth noting in a validation report even when overall RMSE looks good.
+**How to read.** Top: actual (solid) vs predicted (dashed) NPL in the holdout window. The lines track each other more closely than during the GFC, which is why OOS RMSE is lower than full-sample in-sample RMSE. Bottom: quarter-by-quarter bias. The flip from positive to negative bias in 2024 is worth flagging in a validation report even though overall RMSE looks good.
 
 ### Regression diagnostics
 
-The next chart is the standard econometric health check on residuals from the 2022 Q4 estimation window.
+Standard econometric health check on residuals from the 2022 Q4 estimation window.
 
 ![Model diagnostics](docs/model_diagnostics.png)
 
-**How to read the chart.**
-
-- **Top left (residuals vs fitted):** Residuals should scatter randomly around zero. A funnel shape would suggest heteroskedasticity. Breusch-Pagan rejects homoskedasticity, which is why I use HC1 robust standard errors.
-- **Top right (Q-Q plot):** The tails deviate from the diagonal, especially in the upper tail. That is the GFC fat tail showing up in the residual distribution. Jarque-Bera rejects normality.
-- **Bottom left (average residual by quarter):** Systematic positive or negative errors in particular periods. The GFC stands out again.
-- **Bottom right (RMSE by bank):** Bank of America and PNC have the largest in-sample errors, consistent with the backtest table.
-
-**Variance inflation factors:**
+- **Residuals vs fitted:** Should scatter randomly around zero. Breusch-Pagan rejects homoskedasticity, which is why HC1 robust standard errors are used.
+- **Q-Q plot:** Upper tail deviates from the diagonal — the GFC fat tail. Jarque-Bera rejects normality.
+- **Average residual by quarter:** Systematic errors in particular periods. The GFC stands out again.
+- **RMSE by bank:** Bank of America and PNC have the largest in-sample errors, consistent with the backtest table.
 
 | Variable | VIF |
 |---|---:|
@@ -248,21 +273,19 @@ The next chart is the standard econometric health check on residuals from the 20
 | `unemployment` | 10.7 |
 | `mortgage_rate_lag1` | 6.4 |
 
-Unemployment VIF above 10 reflects correlation between unemployment and lagged NPL. I would monitor coefficient stability across rolling windows before relying on that point estimate in a live stress test.
+Unemployment VIF above 10 reflects correlation with lagged NPL. I would monitor coefficient stability across rolling windows before relying on that point estimate in a live stress test.
 
 ### Unit root tests
 
-Before relying on NPL in levels, I checked stationarity with Phillips-Perron and Zivot-Andrews tests (using the `arch` package). Bank NPL ratios do not reject a unit root in levels for most institutions. GDP growth is stationary. Unemployment is borderline.
+Before relying on NPL in levels I checked stationarity with Phillips-Perron and Zivot-Andrews tests (`arch` package). Bank NPL ratios do not reject a unit root in levels for most institutions. GDP growth is stationary. Unemployment is borderline.
 
-That supports including the AR term. First-differencing NPL would remove the level information that stress testers care about. Supervisors want to know the projected **level** of NPL under an adverse path, not just the change.
+This supports including the AR term. First-differencing NPL would remove the level information stress testers care about. Supervisors want the projected **level** of NPL under an adverse path, not just the change.
 
 ---
 
 ## Stress test results
 
-Once the model is estimated on history, I feed the **2025 Fed severely adverse scenario** through it starting from each bank's 2024 Q4 position. The satellite produces a nine-quarter NPL path. The capital module then converts NPL increases into credit losses and rolls equity forward.
-
-The loss translation is intentionally simple compared to an ECL engine:
+I feed the **2025 Fed severely adverse scenario** through the satellite starting from each bank's 2024 Q4 position. The satellite produces a nine-quarter NPL path. The capital module converts NPL increases into losses and rolls equity forward.
 
 ```
 new NPLs (dollars)  = max(change in NPL ratio, 0) x net loans
@@ -272,12 +295,10 @@ equity              = equity + net income
 capital ratio       = equity / total assets
 ```
 
-PPNR is modeled as a flat quarterly ROA (0.10% under stress vs 0.30% in the baseline default). There are no dividends, no capital raises, and no risk-weighted capital ratio.
-
-**Capital and loss results under the severely adverse scenario:**
+PPNR is a flat quarterly ROA (0.10% under stress vs 0.30% baseline). No dividends, no capital raises, no risk-weighted capital ratio.
 
 | Bank | Trough capital (%) | End capital (%) | Total credit loss | Breach 5% floor? |
-|---|---:|---:|---:|---|
+|---|---:|---:|---:|:---:|
 | JPMorgan Chase | 9.10 | 10.04 | $10.3B | No |
 | Bank of America | 9.58 | 10.46 | $8.4B | No |
 | U.S. Bank | 9.68 | 10.59 | $2.0B | No |
@@ -291,17 +312,17 @@ PPNR is modeled as a flat quarterly ROA (0.10% under stress vs 0.30% in the base
 
 ![Stress test results](docs/stress_results.png)
 
-**How to read the chart.** The left panel shows projected NPL ratios under the adverse scenario. NPL roughly doubles over the horizon for most banks, which is the satellite's response to the macro path (rising unemployment, falling GDP, higher rates). The right panel shows the equity-to-assets ratio. Capital ratios **rise** slightly over the projection because PPNR exceeds losses in this simplified module. That is a limitation, not a finding about real bank resilience. A full DFAST-style projection would include RWA growth, balance sheet rebalancing, and often declining PPNR under stress. The red dashed line at 5% is a reference floor. No bank crosses it here, but that outcome follows from the assumptions above rather than from a definitive solvency assessment.
+**How to read.** Left: projected NPL ratios. NPL roughly doubles over the horizon for most banks — the satellite's response to the macro path (rising unemployment, falling GDP, higher rates). Right: equity-to-assets ratio. Capital ratios rise slightly over the projection because PPNR exceeds losses in this simplified module. That is a limitation, not a finding about real bank resilience. A full DFAST-style projection would include RWA growth, balance sheet rebalancing, and often declining PPNR under stress.
 
 In a real bank, this stage would sit on top of hundreds of PD/LGD models by segment, with provisions flowing through the ECL framework and capital measured against CET1 and leverage ratios. Here the point is to show that the satellite output connects to a balance-sheet narrative, not to replicate CCAR.
 
 ---
 
-## What I would improve next
+## Extension roadmap
 
 If I were taking this from a class project to a production-style exercise, these would be my priorities:
 
-1. **Replace the NPL satellite with a PD-based segment structure** (even a coarse one: CRE, cards, C&I, residential) if loan-level or segment data were available.
+1. **Replace the NPL satellite with a PD-based segment structure** (CRE, cards, C&I, residential) if loan-level or segment data were available.
 2. **Add risk-weighted capital** instead of equity over total assets.
 3. **Model PPNR properly** (NII satellite with repricing gaps, not a flat ROA).
 4. **Add a crisis regime** (dummy or threshold) so the GFC is not treated like a normal draw.
@@ -322,12 +343,8 @@ pip install -r requirements.txt
 python examples/run_all.py
 ```
 
-That single command runs the stress test, out-of-sample forecast, validation suite, unit root tests, and PDF report. You can also run each stage separately from the `examples/` folder.
-
-Key outputs land in `data/` (CSVs) and `docs/` (charts and `US_Bank_Credit_Stress_Test.pdf`).
+That single command runs the stress test, out-of-sample forecast, validation suite, unit root tests, and PDF report. Each stage can also be run separately from the `examples/` folder. Key outputs land in `data/` (CSVs) and `docs/` (charts and `US_Bank_Credit_Stress_Test.pdf`).
 
 ---
 
-## Disclaimer
-
-This is an educational project built entirely on public data. It is not supervisory software. The outputs are not assessments of any real bank's credit quality, provisions, or capital adequacy.
+*Educational project built entirely on public data. Not supervisory software; outputs are not assessments of any real bank's credit quality, provisions, or capital adequacy.*

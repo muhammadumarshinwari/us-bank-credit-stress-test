@@ -2,11 +2,11 @@ field,value
 Bank,Bank of America NA
 Variable,npl_ratio
 Test,"Zivot-Andrews (constant, 1 structural break)"
-Observations,76
-ZA test statistic,-3.8072
-p-value,0.4739
+Observations,80
+ZA test statistic,-3.699
+p-value,0.5479
 Lags,1
-Estimated break date,2007-12-31
+Estimated break date,2008-03-31
 Critical value (1%),-5.2764
 Critical value (5%),-4.8107
 Critical value (10%),-4.5662

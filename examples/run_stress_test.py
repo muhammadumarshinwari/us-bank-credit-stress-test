@@ -23,6 +23,8 @@ from stresskit import (
     load_fed_scenario, SAMPLE_CERTS, fetch_bank_financials,
 )
 from stresskit.models import REGRESSORS
+from stresskit.style import apply_style, BANK_COLORS
+apply_style()
 
 # Actual history through 2024 Q4; Fed 2025 severely adverse scenario starts 2025 Q1.
 ACTUAL_DATA_END = "2024-12-31"

@@ -7,6 +7,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from stresskit import SatelliteNPLModel, validate_model
+from stresskit.style import apply_style
+apply_style()
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"

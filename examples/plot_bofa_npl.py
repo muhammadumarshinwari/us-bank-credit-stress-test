@@ -1,6 +1,10 @@
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from stresskit.style import apply_style
+apply_style()
 
 panel = pd.read_csv(
     Path(__file__).resolve().parent.parent / "data" / "regression_panel.csv",

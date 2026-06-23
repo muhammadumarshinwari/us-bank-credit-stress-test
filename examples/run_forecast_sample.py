@@ -8,6 +8,8 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from stresskit import SAMPLE_CERTS, SatelliteNPLModel
+from stresskit.style import apply_style, BANK_COLORS
+apply_style()
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
