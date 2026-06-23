@@ -138,6 +138,10 @@ That iterative trimming is normal in satellite model development. The goal is a 
 
 ### Estimated coefficients (full panel, 780 obs.)
 
+![Estimated coefficients with 95% confidence intervals](docs/coefficient_estimates.png)
+
+**How to read.** Each bar is a regression coefficient. The horizontal whisker is its 95% confidence interval. Navy bars are positive (variables that push NPL up), burgundy bars are negative (variables that push NPL down). No interval crosses zero, meaning every coefficient is statistically significant.
+
 | Variable | Coef. | Std. err. | Sign | Reading |
 |---|--:|--:|:---:|---|
 | `npl_lag1` | 0.942 | 0.011 | + | NPL is highly persistent |
