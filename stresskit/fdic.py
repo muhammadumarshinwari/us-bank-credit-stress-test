@@ -119,7 +119,10 @@ SAMPLE_CERTS = {
     6548: "U.S. Bank NA",
     6384: "PNC Bank NA",
     9846: "Truist Bank",
-    5649: "Fifth Third Bank NA",
-    6672: "KeyBank NA",
-    18409: "Regions Bank",
+    6672: "Fifth Third Bank NA",
+    17534: "KeyBank NA",
+    12368: "Regions Bank",
+    588: "M&T Bank",
+    57957: "Citizens Bank NA",
+    6560: "Huntington National Bank",
 }

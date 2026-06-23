@@ -1,12 +1,12 @@
 metric,value
 Estimation window,2005-03-31 to 2022-12-31
-Observations,700
-Banks,10
+Observations,910
+Banks,13
 Quarters,72
-R-squared,0.9715
-Adj R-squared,0.971
-RMSE (in-sample est period),0.3204
-MAE (in-sample est period),0.1915
-AIC,420.94
-BIC,484.66
-Durbin-Watson,1.1182
+R-squared,0.968
+Adj R-squared,0.9674
+RMSE (in-sample est period),0.3201
+MAE (in-sample est period),0.1901
+AIC,543.5
+BIC,625.32
+Durbin-Watson,1.1417

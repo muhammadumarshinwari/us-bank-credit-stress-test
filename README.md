@@ -10,15 +10,15 @@
 
 ## Headline result
 
-The 2025 Fed severely adverse scenario applied to ten large US banks over a nine-quarter horizon:
+The 2025 Fed severely adverse scenario applied to thirteen large US banks over a nine-quarter horizon:
 
 <table>
 <tr><th align="left">Stress test outcome</th><th></th><th align="left">Model fit</th><th></th></tr>
-<tr><td>Total system credit loss</td><td align="right"><b>$36.0B</b></td><td>In-sample RMSE</td><td align="right"><b>0.31 pp</b></td></tr>
-<tr><td>Median trough Tier 1 ratio</td><td align="right"><b>13.4%</b></td><td>Out-of-sample RMSE</td><td align="right"><b>0.17 pp</b></td></tr>
-<tr><td>Most stressed bank (trough)</td><td align="right"><b>PNC, 12.0%</b></td><td>R-squared</td><td align="right"><b>0.972</b></td></tr>
-<tr><td>Least stressed bank (trough)</td><td align="right"><b>Regions, 17.1%</b></td><td>Validation flags</td><td align="right"><b>12 PASS / 4 WARN</b></td></tr>
-<tr><td>Banks breaching 8.5% Tier 1 floor</td><td align="right"><b>0 of 10</b></td><td>Observations</td><td align="right"><b>780</b></td></tr>
+<tr><td>Total system credit loss</td><td align="right"><b>$38.7B</b></td><td>In-sample RMSE</td><td align="right"><b>0.31 pp</b></td></tr>
+<tr><td>Median trough Tier 1 ratio</td><td align="right"><b>13.0%</b></td><td>Out-of-sample RMSE</td><td align="right"><b>0.16 pp</b></td></tr>
+<tr><td>Most stressed bank (trough)</td><td align="right"><b>Regions, 11.4%</b></td><td>R-squared</td><td align="right"><b>0.968</b></td></tr>
+<tr><td>Least stressed bank (trough)</td><td align="right"><b>JPMorgan, 16.2%</b></td><td>Validation flags</td><td align="right"><b>13 PASS / 5 WARN</b></td></tr>
+<tr><td>Banks breaching 8.5% Tier 1 floor</td><td align="right"><b>0 of 13</b></td><td>Observations</td><td align="right"><b>1,014</b></td></tr>
 </table>
 
 Capital metric is Tier 1 / RWA (a CET1 proxy — see [Stress test results](#stress-test-results)). The 8.5% threshold is the 6% Tier 1 minimum plus a 2.5% conservation buffer. All numbers reproduce from `python examples/run_all.py`.
@@ -32,14 +32,14 @@ FDIC call reports      FRED macro history       2025 Fed scenario
        │                       │                        │
        └───────────┬───────────┘                        │
                    ▼                                    │
-        Estimation panel (780 obs)                      │
+        Estimation panel (1,014 obs)                    │
                    │                                    │
                    ▼                                    │
         Satellite NPL model                             │
         (panel FE + AR(1) + macro)                      │
                    │                                    │
                    ▼                                    │
-        Validation suite (12 PASS, 4 WARN)              │
+        Validation suite (13 PASS, 5 WARN)              │
                    │                                    │
                    └───────────┬────────────────────────┘
                                ▼
@@ -62,7 +62,7 @@ This project is **not** that. It is a **top-down satellite model** of the kind s
 
 ## The workflow
 
-1. **Build the panel.** Pull quarterly financials for ten US banks from the FDIC and merge with FRED macro history.
+1. **Build the panel.** Pull quarterly financials for thirteen US banks from the FDIC and merge with FRED macro history.
 2. **Estimate the satellite.** Regress each bank's NPL ratio on its own lag, GDP growth, unemployment, and mortgage rates, with bank fixed effects.
 3. **Validate.** Backtest in sample, forecast out of sample on 2023-2024, run standard regression diagnostics, and check unit roots.
 4. **Project.** Feed the 2025 Fed severely adverse scenario through the model, convert NPL paths into losses, and roll capital forward.
@@ -73,7 +73,7 @@ This project is **not** that. It is a **top-down satellite model** of the kind s
 
 ### Banks and the credit metric
 
-Ten large US banks. Quarterly data from the [FDIC BankFind API](https://banks.data.fdic.gov/docs/) (free, no key). After the first download, results are cached locally.
+Thirteen large US banks, all of which are subsidiaries of bank holding companies covered by the Fed's 2025 DFAST exercise. Quarterly data from the [FDIC BankFind API](https://banks.data.fdic.gov/docs/) (free, no key). After the first download, results are cached locally.
 
 The dependent variable is the **NPL ratio** from call report fields:
 
@@ -81,18 +81,39 @@ $$\text{NPL ratio (\\%)} = \frac{\text{NCLNLS}}{\text{LNLSNET}} \times 100$$
 
 `NCLNLS` is noncurrent loans and leases. `LNLSNET` is net loans and leases. A coarse but standard portfolio-level credit quality measure.
 
-| CERT | Bank |
-|---:|---|
-| 628 | JPMorgan Chase Bank NA |
-| 3510 | Bank of America NA |
-| 3511 | Wells Fargo Bank NA |
-| 7213 | Citibank NA |
-| 6548 | U.S. Bank NA |
-| 6384 | PNC Bank NA |
-| 9846 | Truist Bank |
-| 5649 | Fifth Third Bank NA |
-| 6672 | KeyBank NA |
-| 18409 | Regions Bank |
+| CERT | Bank | Parent BHC (DFAST entity) |
+|---:|---|---|
+| 628 | JPMorgan Chase Bank NA | JPMorgan Chase & Co. |
+| 3510 | Bank of America NA | Bank of America Corporation |
+| 3511 | Wells Fargo Bank NA | Wells Fargo & Company |
+| 7213 | Citibank NA | Citigroup Inc. |
+| 6548 | U.S. Bank NA | U.S. Bancorp |
+| 6384 | PNC Bank NA | PNC Financial Services Group |
+| 9846 | Truist Bank | Truist Financial Corporation |
+| 6672 | Fifth Third Bank NA | Fifth Third Bancorp |
+| 17534 | KeyBank NA | KeyCorp |
+| 12368 | Regions Bank | Regions Financial Corporation |
+| 588 | M&T Bank | M&T Bank Corporation |
+| 57957 | Citizens Bank NA | Citizens Financial Group |
+| 6560 | The Huntington National Bank | Huntington Bancshares |
+
+### Why these thirteen and not all twenty-two DFAST banks?
+
+The Fed's 2025 DFAST covers twenty-two bank holding companies. The remaining nine are excluded from this panel because the satellite is a **credit risk model**, and their business models are not credit-driven in the way this specification assumes:
+
+| Excluded BHC | Reason |
+|---|---|
+| Goldman Sachs Group | Broker-dealer dominant; bank subsidiary holds mostly cash and treasuries, not loans |
+| Morgan Stanley | Same as Goldman — bank subsidiary is small relative to securities business |
+| The Bank of New York Mellon | Custody bank; minimal loan book, NPL ratio is essentially zero |
+| State Street Corporation | Custody bank — same profile as BNY Mellon |
+| Northern Trust Corporation | Custody and wealth management; loan book is collateralized securities lending |
+| The Charles Schwab Corporation | Wealth management and brokerage; bank arm is mainly margin and securities-backed lending |
+| Capital One Financial | Credit card heavy; NPL dynamics and macro sensitivities are very different from commercial loans |
+| American Express Company | Pure card portfolio; baseline NPL runs much higher and reacts differently |
+| Ally Financial | Auto-loan dominant; different LGD assumption and macro betas |
+
+The right way to bring these into the framework would be to estimate **separate satellites by portfolio type** — a card model, an auto model, a custody model — which is exactly how production CCAR / DFAST stacks are organized. That is the natural extension; see [Extension roadmap](#extension-roadmap).
 
 ### Macro variables
 
@@ -107,7 +128,7 @@ Bundled in `data/fred_macro_history.csv` so the project runs without a FRED API 
 | CPI inflation | `CPIAUCSL` | No | — |
 | House price index | `CSUSHPINSA` | No | — |
 
-Panel: **2005 Q1 to 2024 Q4** (80 quarters per bank). After attaching two lags, **780 bank-quarters** remain for estimation.
+Panel: **2005 Q1 to 2024 Q4** (80 quarters per bank). After attaching two lags, **1,014 bank-quarters** remain for estimation. The validation window restricts to estimation through 2022 Q4 (910 obs) and reserves 2023-2024 for out-of-sample testing.
 
 ### Stress scenario
 
@@ -133,7 +154,7 @@ I did not start with four variables. The first pass included two lags of GDP, un
 
 That iterative trimming is normal in satellite model development. The goal is a stable, interpretable mapping from scenario to NPL that a validator can challenge — not the highest in-sample R-squared.
 
-### Estimated coefficients (full panel, 780 obs.)
+### Estimated coefficients (full panel, 1,014 obs.)
 
 ![Estimated coefficients with 95% confidence intervals](docs/coefficient_estimates.png)
 
@@ -141,12 +162,12 @@ That iterative trimming is normal in satellite model development. The goal is a 
 
 | Variable | Coefficient | Std. err. | t-stat | p-value | Reading |
 |---|--:|--:|--:|:---:|---|
-| `npl_lag1` | **+0.942** | 0.011 | 85.6 | \*\*\* | NPL is highly persistent |
-| `real_gdp_growth_lag2` | **&minus;0.007** | 0.002 | &minus;3.9 | \*\*\* | Weaker growth raises NPL with delay |
-| `unemployment` | **+0.052** | 0.010 | 5.4 | \*\*\* | Higher unemployment raises NPL |
-| `mortgage_rate_lag1` | **+0.077** | 0.008 | 9.3 | \*\*\* | Higher rates raise NPL with one-quarter lag |
+| `npl_lag1` | **+0.938** | 0.010 | 92.0 | \*\*\* | NPL is highly persistent |
+| `real_gdp_growth_lag2` | **&minus;0.008** | 0.002 | &minus;4.1 | \*\*\* | Weaker growth raises NPL with delay |
+| `unemployment` | **+0.050** | 0.008 | 6.5 | \*\*\* | Higher unemployment raises NPL |
+| `mortgage_rate_lag1` | **+0.069** | 0.008 | 9.1 | \*\*\* | Higher rates raise NPL with one-quarter lag |
 
-<sub>\*\*\* p &lt; 0.01 &nbsp;·&nbsp; \*\* p &lt; 0.05 &nbsp;·&nbsp; \* p &lt; 0.10 &nbsp;·&nbsp; HC1 robust SEs &nbsp;·&nbsp; R² = 0.972 &nbsp;·&nbsp; N = 780</sub>
+<sub>\*\*\* p &lt; 0.01 &nbsp;·&nbsp; \*\* p &lt; 0.05 &nbsp;·&nbsp; \* p &lt; 0.10 &nbsp;·&nbsp; HC1 robust SEs &nbsp;·&nbsp; R² = 0.968 &nbsp;·&nbsp; N = 1,014</sub>
 
 ---
 
@@ -173,22 +194,22 @@ report.print_summary()
 report.save("data/")
 ```
 
-**Validation summary (estimation through 2022 Q4):** 12 PASS · 4 WARN · 0 FAIL
+**Validation summary (estimation through 2022 Q4):** 13 PASS · 5 WARN · 0 FAIL
 
 | Check | Status | Detail |
 |---|:---:|---|
 | Coefficient signs | PASS | All four regressors signed as theory suggests |
 | Statistical significance | PASS | All p-values below 1% |
-| R-squared | PASS | 0.972 |
+| R-squared | PASS | 0.968 |
 | In-sample RMSE | PASS | 0.32 pp |
-| Out-of-sample RMSE | PASS | 0.17 pp |
+| Out-of-sample RMSE | PASS | 0.16 pp |
 | Out-of-sample bias | PASS | +0.14 pp, model slightly under-predicts |
 | Heteroskedasticity | PASS | Breusch-Pagan rejects, HC1 SEs used |
-| Durbin-Watson | WARN | 1.12, some positive autocorrelation |
+| Durbin-Watson | WARN | 1.14, some positive autocorrelation |
 | Ljung-Box | WARN | Serial correlation in residuals |
 | Residual normality | WARN | Fat tails, driven by the GFC |
-| Multicollinearity | WARN | Unemployment VIF = 10.7 |
-| GFC period RMSE | WARN | 0.75 pp in 2008-2009 vs 0.11 pp in 2015-2019 |
+| Multicollinearity | WARN | Unemployment VIF > 10 |
+| GFC period RMSE | WARN | 0.73 pp in 2008-2009 vs &lt; 0.20 pp in calm periods |
 
 The warnings are honest. A linear AR model with ten banks is not going to fit the GFC well, and unemployment correlates with lagged NPL by construction. In a bank validation I would document these points and test challenger specifications (crisis dummy, shorter estimation window, alternative unemployment transform). I would not hide them.
 
@@ -202,16 +223,19 @@ At each quarter, can the model predict that quarter's NPL using only information
 
 | Bank | RMSE (pp) | MAE (pp) |
 |---|---:|---:|
-| Regions | 0.14 | 0.11 |
+| Citizens | 0.17 | 0.12 |
 | U.S. Bank | 0.19 | 0.13 |
-| Fifth Third | 0.23 | 0.18 |
-| Truist | 0.24 | 0.16 |
+| Regions | 0.21 | 0.16 |
+| M&T Bank | 0.22 | 0.15 |
+| Truist | 0.23 | 0.16 |
+| KeyBank | 0.27 | 0.18 |
 | Wells Fargo | 0.33 | 0.19 |
 | JPMorgan Chase | 0.34 | 0.20 |
-| Citibank | 0.35 | 0.21 |
-| KeyBank | 0.35 | 0.18 |
+| Citibank | 0.34 | 0.21 |
+| Fifth Third | 0.35 | 0.18 |
+| Huntington | 0.39 | 0.21 |
+| PNC | 0.40 | 0.17 |
 | Bank of America | 0.40 | 0.26 |
-| PNC | 0.40 | 0.18 |
 
 ![Backtest results](docs/backtest_results.png)
 
@@ -221,22 +245,22 @@ At each quarter, can the model predict that quarter's NPL using only information
 
 | Period | RMSE (pp) | Regime |
 |---|---:|---|
-| 2005-2007 | 0.20 | Pre-crisis |
-| **2008-2009** | **0.75** | **Global Financial Crisis** |
+| 2005-2007 | 0.21 | Pre-crisis |
+| **2008-2009** | **0.73** | **Global Financial Crisis** |
 | 2010-2014 | 0.29 | Post-crisis recovery |
-| 2015-2019 | 0.11 | Calm expansion |
-| 2020-2022 | 0.18 | COVID + reopening |
+| 2015-2019 | 0.12 | Calm expansion |
+| 2020-2022 | 0.19 | COVID + reopening |
 
 The GFC row is the one I would spend the most time on in a model review.
 
 ### Out-of-sample forecast (2023 Q1 to 2024 Q4)
 
-In-sample fit can always be engineered. A more informative test: estimate through **2022 Q4**, forecast **2023 Q1 to 2024 Q4** (80 bank-quarters).
+In-sample fit can always be engineered. A more informative test: estimate through **2022 Q4**, forecast **2023 Q1 to 2024 Q4** (104 bank-quarters across 13 banks).
 
 <table>
 <tr><th>Metric</th><th align="right">Value</th><th>Read</th></tr>
-<tr><td>RMSE</td><td align="right"><b>0.17 pp</b></td><td>Typical absolute miss is under 0.2 pp</td></tr>
-<tr><td>MAE</td><td align="right"><b>0.16 pp</b></td><td>Median error in line with RMSE — few large outliers</td></tr>
+<tr><td>RMSE</td><td align="right"><b>0.16 pp</b></td><td>Typical absolute miss is under 0.2 pp</td></tr>
+<tr><td>MAE</td><td align="right"><b>0.14 pp</b></td><td>Median error in line with RMSE — few large outliers</td></tr>
 <tr><td>Bias</td><td align="right"><b>+0.14 pp</b></td><td>Model systematically under-predicts realized NPL</td></tr>
 </table>
 
@@ -244,14 +268,14 @@ NPL ticked up modestly in 2024 and the satellite, anchored on high persistence, 
 
 | Quarter | Actual NPL (%) | Predicted (%) | Error (pp) |
 |---|---:|---:|---:|
-| 2023 Q1 | 0.86 | 0.99 | +0.13 |
-| 2023 Q2 | 0.84 | 0.99 | +0.15 |
-| 2023 Q3 | 0.91 | 0.98 | +0.08 |
-| 2023 Q4 | 0.96 | 1.11 | +0.15 |
-| 2024 Q1 | 1.01 | 1.18 | +0.17 |
-| 2024 Q2 | 0.97 | 1.18 | +0.21 |
-| 2024 Q3 | 1.02 | 1.20 | +0.18 |
-| 2024 Q4 | 1.08 | 1.17 | +0.09 |
+| 2023 Q1 | 0.91 | 1.04 | +0.13 |
+| 2023 Q2 | 0.88 | 1.02 | +0.14 |
+| 2023 Q3 | 0.93 | 1.01 | +0.08 |
+| 2023 Q4 | 0.99 | 1.12 | +0.13 |
+| 2024 Q1 | 1.04 | 1.18 | +0.14 |
+| 2024 Q2 | 1.01 | 1.19 | +0.18 |
+| 2024 Q3 | 1.05 | 1.22 | +0.17 |
+| 2024 Q4 | 1.07 | 1.18 | +0.12 |
 
 ![Out-of-sample forecast](docs/forecast_sample_results.png)
 
@@ -309,16 +333,19 @@ The **8.5% threshold** is the regulatory 6% Tier 1 minimum plus the 2.5% capital
 
 | Bank | Starting T1 (Q4 2024) | Trough T1 | End T1 | Total credit loss | Breach 8.5%? |
 |---|---:|---:|---:|---:|:---:|
-| PNC | 11.85% | 11.98% | 13.12% | $1.9B | No |
-| Fifth Third | 12.03% | 12.15% | 13.26% | $0.4B | No |
-| Truist | 12.61% | 12.74% | 13.87% | $1.7B | No |
-| KeyBank | 12.86% | 12.99% | 14.17% | $0.6B | No |
-| Wells Fargo | 13.08% | 13.24% | 14.51% | $6.3B | No |
-| Bank of America | 13.46% | 13.64% | 15.21% | $8.4B | No |
-| U.S. Bank | 13.60% | 13.75% | 15.10% | $2.0B | No |
-| Citibank | 14.03% | 14.18% | 15.68% | $3.7B | No |
-| JPMorgan Chase | 16.04% | 16.16% | 18.06% | $10.3B | No |
-| Regions | 16.94% | 17.11% | 18.75% | $0.8B | No |
+| Regions | 11.32% | 11.45% | 12.53% | $0.5B | No |
+| PNC | 11.85% | 11.98% | 13.11% | $2.0B | No |
+| M&T Bank | 12.32% | 12.39% | 13.56% | $0.8B | No |
+| Citizens | 12.27% | 12.41% | 13.63% | $0.6B | No |
+| Huntington | 12.39% | 12.53% | 13.75% | $0.7B | No |
+| Truist | 12.61% | 12.74% | 13.85% | $1.8B | No |
+| Fifth Third | 12.86% | 12.99% | 14.15% | $0.6B | No |
+| KeyBank | 12.94% | 13.07% | 14.32% | $0.5B | No |
+| Wells Fargo | 13.08% | 13.24% | 14.49% | $6.5B | No |
+| Bank of America | 13.46% | 13.64% | 15.19% | $8.7B | No |
+| U.S. Bank | 13.60% | 13.75% | 15.08% | $2.1B | No |
+| Citibank | 14.03% | 14.18% | 15.66% | $3.9B | No |
+| JPMorgan Chase | 16.04% | 16.24% | 18.08% | $10.0B | No |
 
 <sub>Starting Tier 1 ratios are from FDIC call reports as of 2024 Q4 (pre-stress).</sub>
 
