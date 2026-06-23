@@ -17,7 +17,7 @@ The 2025 Fed severely adverse scenario applied to ten large US banks over a nine
 <tr><td>Total system credit loss</td><td align="right"><b>$36.0B</b></td><td>In-sample RMSE</td><td align="right"><b>0.31 pp</b></td></tr>
 <tr><td>Median trough Tier 1 ratio</td><td align="right"><b>13.4%</b></td><td>Out-of-sample RMSE</td><td align="right"><b>0.17 pp</b></td></tr>
 <tr><td>Most stressed bank (trough)</td><td align="right"><b>PNC, 12.0%</b></td><td>R-squared</td><td align="right"><b>0.972</b></td></tr>
-<tr><td>Least stressed bank (trough)</td><td align="right"><b>Regions, 17.1%</b></td><td>Validation flags</td><td align="right"><b>12 ✅ / 4 ⚠️</b></td></tr>
+<tr><td>Least stressed bank (trough)</td><td align="right"><b>Regions, 17.1%</b></td><td>Validation flags</td><td align="right"><b>12 PASS / 4 WARN</b></td></tr>
 <tr><td>Banks breaching 8.5% Tier 1 floor</td><td align="right"><b>0 of 10</b></td><td>Observations</td><td align="right"><b>780</b></td></tr>
 </table>
 
@@ -100,12 +100,12 @@ Bundled in `data/fred_macro_history.csv` so the project runs without a FRED API 
 
 | Variable | FRED series | In final model | Lag |
 |---|---|:---:|:---:|
-| Real GDP growth | `A191RL1Q225SBEA` | ✅ | t&minus;2 |
-| Unemployment | `UNRATE` | ✅ | t |
-| 30-year mortgage rate | `MORTGAGE30US` | ✅ | t&minus;1 |
-| 3-month T-bill | `TB3MS` | ⬜ | — |
-| CPI inflation | `CPIAUCSL` | ⬜ | — |
-| House price index | `CSUSHPINSA` | ⬜ | — |
+| Real GDP growth | `A191RL1Q225SBEA` | Yes | t&minus;2 |
+| Unemployment | `UNRATE` | Yes | t |
+| 30-year mortgage rate | `MORTGAGE30US` | Yes | t&minus;1 |
+| 3-month T-bill | `TB3MS` | No | — |
+| CPI inflation | `CPIAUCSL` | No | — |
+| House price index | `CSUSHPINSA` | No | — |
 
 Panel: **2005 Q1 to 2024 Q4** (80 quarters per bank). After attaching two lags, **780 bank-quarters** remain for estimation.
 
@@ -141,12 +141,12 @@ That iterative trimming is normal in satellite model development. The goal is a 
 
 | Variable | Coefficient | Std. err. | t-stat | p-value | Reading |
 |---|--:|--:|--:|:---:|---|
-| `npl_lag1` | **+0.942** | 0.011 | 85.6 | ✱✱✱ | NPL is highly persistent |
-| `real_gdp_growth_lag2` | **&minus;0.007** | 0.002 | &minus;3.9 | ✱✱✱ | Weaker growth raises NPL with delay |
-| `unemployment` | **+0.052** | 0.010 | 5.4 | ✱✱✱ | Higher unemployment raises NPL |
-| `mortgage_rate_lag1` | **+0.077** | 0.008 | 9.3 | ✱✱✱ | Higher rates raise NPL with one-quarter lag |
+| `npl_lag1` | **+0.942** | 0.011 | 85.6 | \*\*\* | NPL is highly persistent |
+| `real_gdp_growth_lag2` | **&minus;0.007** | 0.002 | &minus;3.9 | \*\*\* | Weaker growth raises NPL with delay |
+| `unemployment` | **+0.052** | 0.010 | 5.4 | \*\*\* | Higher unemployment raises NPL |
+| `mortgage_rate_lag1` | **+0.077** | 0.008 | 9.3 | \*\*\* | Higher rates raise NPL with one-quarter lag |
 
-<sub>✱✱✱ p &lt; 0.01 &nbsp;·&nbsp; ✱✱ p &lt; 0.05 &nbsp;·&nbsp; ✱ p &lt; 0.10 &nbsp;·&nbsp; HC1 robust SEs &nbsp;·&nbsp; R² = 0.972 &nbsp;·&nbsp; N = 780</sub>
+<sub>\*\*\* p &lt; 0.01 &nbsp;·&nbsp; \*\* p &lt; 0.05 &nbsp;·&nbsp; \* p &lt; 0.10 &nbsp;·&nbsp; HC1 robust SEs &nbsp;·&nbsp; R² = 0.972 &nbsp;·&nbsp; N = 780</sub>
 
 ---
 
@@ -173,22 +173,22 @@ report.print_summary()
 report.save("data/")
 ```
 
-**Validation summary (estimation through 2022 Q4):**  &nbsp; **12 ✅ PASS** &nbsp; · &nbsp; **4 ⚠️ WARN** &nbsp; · &nbsp; **0 ❌ FAIL**
+**Validation summary (estimation through 2022 Q4):** 12 PASS · 4 WARN · 0 FAIL
 
 | Check | Status | Detail |
 |---|:---:|---|
-| Coefficient signs | ✅ | All four regressors signed as theory suggests |
-| Statistical significance | ✅ | All p-values below 1% |
-| R-squared | ✅ | 0.972 |
-| In-sample RMSE | ✅ | 0.32 pp |
-| Out-of-sample RMSE | ✅ | 0.17 pp |
-| Out-of-sample bias | ✅ | +0.14 pp, model slightly under-predicts |
-| Heteroskedasticity | ✅ | Breusch-Pagan rejects, HC1 SEs used |
-| Durbin-Watson | ⚠️ | 1.12, some positive autocorrelation |
-| Ljung-Box | ⚠️ | Serial correlation in residuals |
-| Residual normality | ⚠️ | Fat tails, driven by the GFC |
-| Multicollinearity | ⚠️ | Unemployment VIF = 10.7 |
-| GFC period RMSE | ⚠️ | 0.75 pp in 2008-2009 vs 0.11 pp in 2015-2019 |
+| Coefficient signs | PASS | All four regressors signed as theory suggests |
+| Statistical significance | PASS | All p-values below 1% |
+| R-squared | PASS | 0.972 |
+| In-sample RMSE | PASS | 0.32 pp |
+| Out-of-sample RMSE | PASS | 0.17 pp |
+| Out-of-sample bias | PASS | +0.14 pp, model slightly under-predicts |
+| Heteroskedasticity | PASS | Breusch-Pagan rejects, HC1 SEs used |
+| Durbin-Watson | WARN | 1.12, some positive autocorrelation |
+| Ljung-Box | WARN | Serial correlation in residuals |
+| Residual normality | WARN | Fat tails, driven by the GFC |
+| Multicollinearity | WARN | Unemployment VIF = 10.7 |
+| GFC period RMSE | WARN | 0.75 pp in 2008-2009 vs 0.11 pp in 2015-2019 |
 
 The warnings are honest. A linear AR model with ten banks is not going to fit the GFC well, and unemployment correlates with lagged NPL by construction. In a bank validation I would document these points and test challenger specifications (crisis dummy, shorter estimation window, alternative unemployment transform). I would not hide them.
 
@@ -200,18 +200,18 @@ The warnings are honest. A linear AR model with ten banks is not going to fit th
 
 At each quarter, can the model predict that quarter's NPL using only information available up to the prior quarter? Overall error is **0.31 pp RMSE** and **0.18 pp MAE**.
 
-| Rank | Bank | RMSE (pp) | MAE (pp) |
-|:---:|---|---:|---:|
-| 🥇 | Regions | 0.14 | 0.11 |
-| 🥈 | U.S. Bank | 0.19 | 0.13 |
-| 🥉 | Fifth Third | 0.23 | 0.18 |
-| 4 | Truist | 0.24 | 0.16 |
-| 5 | Wells Fargo | 0.33 | 0.19 |
-| 6 | JPMorgan Chase | 0.34 | 0.20 |
-| 7 | Citibank | 0.35 | 0.21 |
-| 8 | KeyBank | 0.35 | 0.18 |
-| 9 | Bank of America | 0.40 | 0.26 |
-| 10 | PNC | 0.40 | 0.18 |
+| Bank | RMSE (pp) | MAE (pp) |
+|---|---:|---:|
+| Regions | 0.14 | 0.11 |
+| U.S. Bank | 0.19 | 0.13 |
+| Fifth Third | 0.23 | 0.18 |
+| Truist | 0.24 | 0.16 |
+| Wells Fargo | 0.33 | 0.19 |
+| JPMorgan Chase | 0.34 | 0.20 |
+| Citibank | 0.35 | 0.21 |
+| KeyBank | 0.35 | 0.18 |
+| Bank of America | 0.40 | 0.26 |
+| PNC | 0.40 | 0.18 |
 
 ![Backtest results](docs/backtest_results.png)
 
@@ -222,7 +222,7 @@ At each quarter, can the model predict that quarter's NPL using only information
 | Period | RMSE (pp) | Regime |
 |---|---:|---|
 | 2005-2007 | 0.20 | Pre-crisis |
-| **2008-2009** | **0.75** | ⚠️ **Global Financial Crisis** |
+| **2008-2009** | **0.75** | **Global Financial Crisis** |
 | 2010-2014 | 0.29 | Post-crisis recovery |
 | 2015-2019 | 0.11 | Calm expansion |
 | 2020-2022 | 0.18 | COVID + reopening |
@@ -242,16 +242,16 @@ In-sample fit can always be engineered. A more informative test: estimate throug
 
 NPL ticked up modestly in 2024 and the satellite, anchored on high persistence, lagged that turn slightly.
 
-| Quarter | Actual NPL (%) | Predicted (%) | Error (pp) | Direction |
-|---|---:|---:|---:|:---:|
-| 2023 Q1 | 0.86 | 0.99 | +0.13 | ▲ over |
-| 2023 Q2 | 0.84 | 0.99 | +0.15 | ▲ over |
-| 2023 Q3 | 0.91 | 0.98 | +0.08 | ▲ over |
-| 2023 Q4 | 0.96 | 1.11 | +0.15 | ▲ over |
-| 2024 Q1 | 1.01 | 1.18 | +0.17 | ▲ over |
-| 2024 Q2 | 0.97 | 1.18 | +0.21 | ▲ over |
-| 2024 Q3 | 1.02 | 1.20 | +0.18 | ▲ over |
-| 2024 Q4 | 1.08 | 1.17 | +0.09 | ▲ over |
+| Quarter | Actual NPL (%) | Predicted (%) | Error (pp) |
+|---|---:|---:|---:|
+| 2023 Q1 | 0.86 | 0.99 | +0.13 |
+| 2023 Q2 | 0.84 | 0.99 | +0.15 |
+| 2023 Q3 | 0.91 | 0.98 | +0.08 |
+| 2023 Q4 | 0.96 | 1.11 | +0.15 |
+| 2024 Q1 | 1.01 | 1.18 | +0.17 |
+| 2024 Q2 | 0.97 | 1.18 | +0.21 |
+| 2024 Q3 | 1.02 | 1.20 | +0.18 |
+| 2024 Q4 | 1.08 | 1.17 | +0.09 |
 
 ![Out-of-sample forecast](docs/forecast_sample_results.png)
 
@@ -269,11 +269,11 @@ Standard econometric health check on residuals from the 2022 Q4 estimation windo
 - **RMSE by bank:** Bank of America and PNC have the largest in-sample errors, consistent with the backtest table.
 
 | Variable | VIF | Status |
-|---|---:|:---:|
-| `npl_lag1` | 3.9 | ✅ low |
-| `real_gdp_growth_lag2` | 1.1 | ✅ low |
-| `unemployment` | 10.7 | ⚠️ above 10 |
-| `mortgage_rate_lag1` | 6.4 | 🟡 monitor |
+|---|---:|:---|
+| `npl_lag1` | 3.9 | Low |
+| `real_gdp_growth_lag2` | 1.1 | Low |
+| `unemployment` | 10.7 | Elevated multicollinearity (above 10) |
+| `mortgage_rate_lag1` | 6.4 | Monitor (in 5–10 range) |
 
 <sub>Conventional thresholds: VIF &lt; 5 low concern · 5–10 monitor · &gt; 10 elevated multicollinearity.</sub>
 
@@ -309,20 +309,18 @@ The **8.5% threshold** is the regulatory 6% Tier 1 minimum plus the 2.5% capital
 
 | Bank | Starting T1 (Q4 2024) | Trough T1 | End T1 | Total credit loss | Breach 8.5%? |
 |---|---:|---:|---:|---:|:---:|
-| PNC | 11.85% | 11.98% | 13.12% | $1.9B | ✅ |
-| Fifth Third | 12.03% | 12.15% | 13.26% | $0.4B | ✅ |
-| Truist | 12.61% | 12.74% | 13.87% | $1.7B | ✅ |
-| KeyBank | 12.86% | 12.99% | 14.17% | $0.6B | ✅ |
-| Wells Fargo | 13.08% | 13.24% | 14.51% | $6.3B | ✅ |
-| Bank of America | 13.46% | 13.64% | 15.21% | $8.4B | ✅ |
-| U.S. Bank | 13.60% | 13.75% | 15.10% | $2.0B | ✅ |
-| Citibank | 14.03% | 14.18% | 15.68% | $3.7B | ✅ |
-| JPMorgan Chase | 16.04% | 16.16% | 18.06% | $10.3B | ✅ |
-| Regions | 16.94% | 17.11% | 18.75% | $0.8B | ✅ |
+| PNC | 11.85% | 11.98% | 13.12% | $1.9B | No |
+| Fifth Third | 12.03% | 12.15% | 13.26% | $0.4B | No |
+| Truist | 12.61% | 12.74% | 13.87% | $1.7B | No |
+| KeyBank | 12.86% | 12.99% | 14.17% | $0.6B | No |
+| Wells Fargo | 13.08% | 13.24% | 14.51% | $6.3B | No |
+| Bank of America | 13.46% | 13.64% | 15.21% | $8.4B | No |
+| U.S. Bank | 13.60% | 13.75% | 15.10% | $2.0B | No |
+| Citibank | 14.03% | 14.18% | 15.68% | $3.7B | No |
+| JPMorgan Chase | 16.04% | 16.16% | 18.06% | $10.3B | No |
+| Regions | 16.94% | 17.11% | 18.75% | $0.8B | No |
 
 <sub>Starting Tier 1 ratios are from FDIC call reports as of 2024 Q4 (pre-stress).</sub>
-
-<sub>✅ above 8.5% floor &nbsp;·&nbsp; ⚠️ between 6% and 8.5% (buffer breach) &nbsp;·&nbsp; ❌ below 6% Tier 1 minimum</sub>
 
 ![Stress test results](docs/stress_results.png)
 
