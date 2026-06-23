@@ -143,9 +143,13 @@ scenario = load_fed_scenario(
 last = panel.sort_values("date").groupby("bank_id").last().reset_index()
 
 npl_paths = model.project(last[["bank_id", "npl_ratio"]], scenario)
+# convert FDIC dollar fields from $000s to dollars (consistent with assets/loans)
+last["tier1_capital_dollars"] = last["tier1_capital"] * 1000
+last["rwa_dollars"]           = last["rwa"] * 1000
 # PPNR is compressed under stress (margin compression + lower fee income)
 projection = project_capital(
-    last[["bank_id", "npl_ratio", "net_loans", "total_assets", "equity"]],
+    last.assign(tier1_capital=last["tier1_capital_dollars"], rwa=last["rwa_dollars"])
+        [["bank_id", "npl_ratio", "net_loans", "total_assets", "tier1_capital", "rwa"]],
     npl_paths,
     assumptions={"ppnr_roa_q": 0.0010, "lgd": 0.45},
 )
@@ -164,9 +168,10 @@ axes[0].set_ylabel("NPL ratio (%)")
 
 for bank_id, g in projection.groupby("bank_id"):
     axes[1].plot(g["date"], g["capital_ratio"] * 100, alpha=0.7)
-axes[1].axhline(5.0, color="red", ls="--", lw=1, label="5% minimum")
-axes[1].set_title("Projected capital ratios")
-axes[1].set_ylabel("Equity / assets (%)")
+axes[1].axhline(8.5, color="red", ls="--", lw=1, label="8.5% Tier 1 floor (6% + CCB)")
+axes[1].axhline(6.0, color="gray", ls=":",  lw=1, label="6% Tier 1 minimum")
+axes[1].set_title("Projected Tier 1 capital ratios")
+axes[1].set_ylabel("Tier 1 capital / RWA (%)")
 axes[1].legend()
 
 for ax in axes:

@@ -16,15 +16,15 @@ The 2025 Fed severely adverse scenario applied to ten large US banks over a nine
 
 | Metric | Value |
 |---|---:|
-| Total system credit loss | $36.1B |
-| Median trough capital ratio | 9.79% |
-| Most stressed bank (trough) | JPMorgan Chase, 9.10% |
-| Least stressed bank (trough) | Regions, 12.60% |
-| Banks breaching 5% capital floor | 0 of 10 |
-| In-sample RMSE | 0.32 pp |
+| Total system credit loss | $36.0B |
+| Median trough Tier 1 ratio | 13.4% |
+| Most stressed bank (trough) | PNC, 12.0% |
+| Least stressed bank (trough) | Regions, 17.1% |
+| Banks breaching 8.5% Tier 1 floor | 0 of 10 |
+| In-sample RMSE | 0.31 pp |
 | Out-of-sample RMSE | 0.17 pp |
 
-All numbers reproduce from `python examples/run_all.py`.
+Capital metric is Tier 1 / RWA (a CET1 proxy — see [Stress test results](#stress-test-results)). The 8.5% threshold is the 6% Tier 1 minimum plus a 2.5% conservation buffer. All numbers reproduce from `python examples/run_all.py`.
 
 ---
 
@@ -289,36 +289,42 @@ This supports including the AR term. First-differencing NPL would remove the lev
 
 ## Stress test results
 
-I feed the **2025 Fed severely adverse scenario** through the satellite starting from each bank's 2024 Q4 position. The satellite produces a nine-quarter NPL path. The capital module converts NPL increases into losses and rolls equity forward.
+I feed the **2025 Fed severely adverse scenario** through the satellite starting from each bank's 2024 Q4 position. The satellite produces a nine-quarter NPL path. The capital module converts NPL increases into losses and rolls **Tier 1 regulatory capital** forward against **risk-weighted assets**.
 
 ```
-new NPLs (dollars)  = max(change in NPL ratio, 0) x net loans
-credit loss         = new NPLs x LGD (45%)
-net income          = PPNR - credit loss
-equity              = equity + net income
-capital ratio       = equity / total assets
+new NPLs (dollars)   = max(change in NPL ratio, 0) x net loans
+credit loss          = new NPLs x LGD (45%)
+net income           = PPNR - credit loss
+tier 1 capital       = tier 1 capital + net income
+capital ratio        = tier 1 capital / RWA
 ```
 
-PPNR is a flat quarterly ROA (0.10% under stress vs 0.30% baseline). No dividends, no capital raises, no risk-weighted capital ratio.
+PPNR is a flat quarterly ROA (0.10% under stress vs 0.30% baseline). RWA is held flat through the horizon. No dividends, no capital raises.
 
-| Bank | Trough capital (%) | End capital (%) | Total credit loss | Breach 5% floor? |
+### Why Tier 1 / RWA and not CET1 directly
+
+CET1 / RWA is the headline ratio in CCAR / DFAST scoring. The FDIC BankFind API silently drops the CET1 fields (a known quirk — same issue we hit with the NPL ratio field), so I use **Tier 1 / RWA** as a CET1 proxy. For the ten large US banks in this panel, CET1 and Tier 1 differ by less than 0.5 percentage points across the entire post-Basel-III history, because they hold negligible non-CET1 Tier 1 instruments (e.g., AT1). The methodology, the projection logic, and the policy interpretation are identical.
+
+The **8.5% threshold** is the regulatory 6% Tier 1 minimum plus the 2.5% capital conservation buffer. Below that, banks face restrictions on dividends and discretionary bonuses.
+
+| Bank | Trough T1 (%) | End T1 (%) | Total credit loss | Breach 8.5% floor? |
 |---|---:|---:|---:|:---:|
-| JPMorgan Chase | 9.10 | 10.04 | $10.3B | No |
-| Bank of America | 9.58 | 10.46 | $8.4B | No |
-| U.S. Bank | 9.68 | 10.59 | $2.0B | No |
-| PNC | 9.71 | 10.56 | $1.9B | No |
-| Fifth Third | 9.74 | 10.67 | $0.4B | No |
-| Wells Fargo | 9.84 | 10.67 | $6.3B | No |
-| Citibank | 10.17 | 11.15 | $3.7B | No |
-| KeyBank | 10.50 | 11.41 | $0.6B | No |
-| Truist | 11.73 | 12.61 | $1.7B | No |
-| Regions | 12.60 | 13.57 | $0.8B | No |
+| PNC | 11.98 | 13.12 | $1.9B | No |
+| Fifth Third | 12.15 | 13.26 | $0.4B | No |
+| Truist | 12.74 | 13.87 | $1.7B | No |
+| KeyBank | 12.99 | 14.17 | $0.6B | No |
+| Wells Fargo | 13.24 | 14.51 | $6.3B | No |
+| Bank of America | 13.64 | 15.21 | $8.4B | No |
+| U.S. Bank | 13.75 | 15.10 | $2.0B | No |
+| Citibank | 14.18 | 15.68 | $3.7B | No |
+| JPMorgan Chase | 16.16 | 18.06 | $10.3B | No |
+| Regions | 17.11 | 18.75 | $0.8B | No |
 
 ![Stress test results](docs/stress_results.png)
 
-**How to read.** Left: projected NPL ratios. NPL roughly doubles over the horizon for most banks — the satellite's response to the macro path (rising unemployment, falling GDP, higher rates). Right: equity-to-assets ratio. Capital ratios rise slightly over the projection because PPNR exceeds losses in this simplified module. That is a limitation, not a finding about real bank resilience. A full DFAST-style projection would include RWA growth, balance sheet rebalancing, and often declining PPNR under stress.
+**How to read.** Left: projected NPL ratios. NPL roughly doubles over the horizon for most banks — the satellite's response to the macro path (rising unemployment, falling GDP, higher rates). Right: Tier 1 capital ratio. The red dashed line is the 8.5% effective floor (6% minimum + 2.5% conservation buffer); the gray dotted line is the bare 6% Tier 1 minimum. Capital ratios drift up because PPNR exceeds losses under these assumptions — a known simplification, not a finding about real bank resilience. A full DFAST-style projection would include RWA growth, balance sheet rebalancing, and often declining PPNR under stress.
 
-In a real bank, this stage would sit on top of hundreds of PD/LGD models by segment, with provisions flowing through the ECL framework and capital measured against CET1 and leverage ratios. Here the point is to show that the satellite output connects to a balance-sheet narrative, not to replicate CCAR.
+In a real bank this stage would sit on top of hundreds of PD/LGD models by segment, with provisions flowing through the ECL framework and capital measured against full CET1, Tier 1 leverage, and SLR ratios. Here the point is to show that the satellite output connects to a regulatory capital narrative, not to replicate CCAR.
 
 ---
 

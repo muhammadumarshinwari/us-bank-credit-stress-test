@@ -29,7 +29,7 @@ BASE_URL = "https://banks.data.fdic.gov/api/financials"
 
 DEFAULT_FIELDS = [
     "CERT", "REPDTE", "ASSET", "DEP", "LNLSNET",
-    "NCLNLS", "NIMY", "ROA", "RBC1RWAJ", "EQ",
+    "NCLNLS", "NIMY", "ROA", "RBC1RWAJ", "RBCT1J", "RWAJT", "EQ",
 ]
 
 
@@ -99,6 +99,8 @@ def fetch_bank_financials(
             "NIMY": "nim",
             "ROA": "roa",
             "RBC1RWAJ": "tier1_ratio",
+            "RBCT1J": "tier1_capital",
+            "RWAJT": "rwa",
             "EQ": "equity",
         }
     )

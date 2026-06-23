@@ -1,9 +1,9 @@
 """
 Capital projection engine.
 
-Translates projected NPL paths into credit losses and rolls bank capital
-forward quarter by quarter — a simplified version of the dynamic capital
-projection used in supervisory stress tests.
+Translates projected NPL paths into credit losses and rolls bank Tier 1
+regulatory capital forward quarter by quarter — a simplified version of
+the dynamic capital projection used in supervisory stress tests.
 
 Per quarter, for each bank:
 
@@ -11,11 +11,13 @@ Per quarter, for each bank:
     credit_loss   = new_npls * LGD
     pre_prov_inc  = ppnr_roa_q * total_assets        (simple PPNR proxy)
     net_income    = pre_prov_inc - credit_loss
-    equity        = equity + net_income              (no distributions)
-    capital_ratio = equity / total_assets            (leverage-style ratio)
+    tier1_capital = tier1_capital + net_income       (no distributions)
+    capital_ratio = tier1_capital / rwa              (risk-weighted)
 
-Assumptions are deliberately visible and adjustable. RWA-based ratios,
-NII modeling, and AFS mark-to-market are natural extensions (see README).
+The capital ratio is Tier 1 / RWA (a CET1 proxy — for large US banks
+CET1 and Tier 1 differ by under 0.5 pp because they hold little non-CET1
+Tier 1). RWA is held flat through the horizon. The supervisory floor is
+6% Tier 1 minimum + 2.5% conservation buffer = 8.5%.
 """
 
 from __future__ import annotations
@@ -25,7 +27,7 @@ import pandas as pd
 DEFAULTS = {
     "lgd": 0.45,            # loss given default on newly nonperforming loans
     "ppnr_roa_q": 0.0030,   # quarterly pre-provision return on assets (0.30%)
-    "min_ratio": 0.05,      # supervisory minimum used for breach flags (5%)
+    "min_ratio": 0.085,     # 6% Tier 1 minimum + 2.5% conservation buffer
 }
 
 
@@ -36,9 +38,9 @@ def project_capital(
 ) -> pd.DataFrame:
     """
     starting_position: one row per bank with
-        bank_id, npl_ratio, net_loans, total_assets, equity
+        bank_id, npl_ratio, net_loans, total_assets, tier1_capital, rwa
     npl_paths: output of SatelliteNPLModel.project()
-    Returns bank-quarter projection with losses, equity, ratio, breach flag.
+    Returns bank-quarter projection with losses, capital, ratio, breach flag.
     """
     a = {**DEFAULTS, **(assumptions or {})}
     rows = []
@@ -47,7 +49,8 @@ def project_capital(
         start = starting_position.loc[
             starting_position["bank_id"] == bank_id
         ].iloc[0]
-        equity = float(start["equity"])
+        tier1 = float(start["tier1_capital"])
+        rwa = float(start["rwa"])
         loans = float(start["net_loans"])
         assets = float(start["total_assets"])
         prev_npl = float(start["npl_ratio"])
@@ -57,8 +60,8 @@ def project_capital(
             credit_loss = d_npl * loans * a["lgd"]
             ppnr = a["ppnr_roa_q"] * assets
             net_income = ppnr - credit_loss
-            equity += net_income
-            ratio = equity / assets
+            tier1 += net_income
+            ratio = tier1 / rwa
             rows.append(
                 {
                     "bank_id": bank_id,
@@ -67,7 +70,8 @@ def project_capital(
                     "credit_loss": credit_loss,
                     "ppnr": ppnr,
                     "net_income": net_income,
-                    "equity": equity,
+                    "tier1_capital": tier1,
+                    "rwa": rwa,
                     "capital_ratio": ratio,
                     "breach": ratio < a["min_ratio"],
                 }
