@@ -322,6 +322,16 @@ The **8.5% threshold** is the regulatory 6% Tier 1 minimum plus the 2.5% capital
 
 <sub>Starting Tier 1 ratios are from FDIC call reports as of 2024 Q4 (pre-stress).</sub>
 
+### Why these numbers do not match the Fed's published DFAST starting ratios
+
+The Fed's [June 2025 DFAST results](https://www.federalreserve.gov/publications/2025-june-dodd-frank-act-stress-test-results.htm) report a starting capital ratio for each bank, and those numbers differ slightly from the starting Tier 1 ratios in the table above. Three reasons:
+
+1. **Reporting entity.** FDIC call reports are filed at the **insured bank subsidiary** level (e.g., JPMorgan Chase Bank NA, CERT 628). The Fed publishes ratios for the **bank holding company** (JPMorgan Chase & Co.), which consolidates the bank plus broker-dealer, credit card, asset management, and insurance subsidiaries. BHC capital data comes from the FR Y-9C filing, not the call report. The two entities have different assets, RWA, and ratios.
+2. **CET1 vs Tier 1.** The Fed's headline ratio is CET1 / RWA. The FDIC API silently drops the CET1 field, so this project uses **Tier 1 / RWA** as a CET1 proxy. CET1 is always less than or equal to Tier 1; the gap is additional Tier 1 instruments (preferred stock, AT1). For these banks the gap is typically 0.5 - 1.5 pp, so the Tier 1 ratio reported here runs slightly above the published CET1 ratio.
+3. **Standardized vs Advanced approaches.** Large US banks compute ratios under both frameworks and the binding ratio is the lower of the two. The FDIC field used here is the standardized approach. The Fed publishes whichever approach is binding for each bank, which is sometimes the advanced internal-ratings-based number.
+
+The project deliberately uses bank-subsidiary data because the FDIC BankFind API is fully public and reproducible without registration. Replicating DFAST inputs exactly would require BHC-level FR Y-9C data, which is a natural extension.
+
 ![Stress test results](docs/stress_results.png)
 
 **How to read.** Left: projected NPL ratios. NPL roughly doubles over the horizon for most banks — the satellite's response to the macro path (rising unemployment, falling GDP, higher rates). Right: Tier 1 capital ratio. The red dashed line is the 8.5% effective floor (6% minimum + 2.5% conservation buffer); the gray dotted line is the bare 6% Tier 1 minimum. Capital ratios drift up because PPNR exceeds losses under these assumptions — a known simplification, not a finding about real bank resilience. A full DFAST-style projection would include RWA growth, balance sheet rebalancing, and often declining PPNR under stress.
