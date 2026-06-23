@@ -2,7 +2,6 @@
 
 > A reduced-form macro stress test of credit risk across ten large US banks. Built as a portfolio project to demonstrate satellite modeling, validation, and capital projection methodology used in supervisory stress testing.
 >
-> *Built by a former Senior Analyst in the Financial Stability Department at the State Bank of Pakistan, where I stress tested 52 institutions across credit, market, liquidity, and PPNR risk.*
 
 **Methods:** panel fixed-effects regression · HC1 robust standard errors · Phillips-Perron and Zivot-Andrews unit root tests · out-of-sample validation · VIF and Ljung-Box diagnostics
 **Data:** FDIC BankFind API · FRED · Fed DFAST scenario files
